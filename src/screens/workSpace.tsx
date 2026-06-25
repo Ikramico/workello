@@ -210,7 +210,7 @@ export default function WorkSpace() {
 						return (
 							<div
 								key={list.id}
-								className="flex-shrink-0 w-72 rounded-2xl bg-[#1a1d27]
+								className="shrink-0 w-72 rounded-2xl bg-[#1a1d27]
                        border border-white/5 flex flex-col overflow-hidden">
 								{/* List header */}
 								<div
@@ -266,7 +266,7 @@ export default function WorkSpace() {
 															{card.title}
 														</p>
 														<span
-															className="flex-shrink-0 text-[10px] font-mono
+															className="shrink-0 text-[10px] font-mono
                                          text-slate-500 bg-white/5
                                          rounded px-1.5 py-0.5 mt-0.5">
 															#{card.position + 1}
@@ -287,7 +287,7 @@ export default function WorkSpace() {
 																	className="flex items-start gap-2">
 																	{/* Checkbox indicator */}
 																	<div
-																		className={`mt-0.5 w-3.5 h-3.5 flex-shrink-0 rounded
+																		className={`mt-0.5 w-3.5 h-3.5 shrink-0 rounded
                                               flex items-center justify-center border
                                               ${
 																								task.isCompleted
