@@ -188,54 +188,180 @@ import { mockBoard, mockCards } from "../data/mockData";
 
 export default function WorkSpace() {
 	return (
-		<div className="bg-slate-800 py-20 px-16">
-			<h2 className="text-2xl text-white text-center">{mockBoard.title}</h2>
-			<div className="board-details text-md text-white/80 text-center ">
-				{mockBoard.description}
+		<div className="min-h-screen bg-[#0f1117] px-8 py-10">
+			{/* Board Header */}
+			<div className="mb-8 text-center">
+				<h2 className="text-3xl font-bold text-white tracking-tight">
+					{mockBoard.title}
+				</h2>
+				<p className="mt-1 text-sm text-slate-400">{mockBoard.description}</p>
 			</div>
-			<div className="board-cards p-2 flex justify-center text-center text-white/80 text-xl">
-				{mockBoard.lists.map((list) => (
-					<div className="p-5 rounded-md bg-gray-900 m-2" key={list.id}>
-						<h1 className="text-bold">{list.title}</h1>
-						<div className="border border-blue-100">
-							{list.cardIds.map((id) => {
-								const card = mockCards[id];
-								if (!card) {
-									return <p className="text-red-300">No Card Available</p>;
-								} else {
-									return (
-										<div className="p-3 mb-5 text-white text-md bg-red-900" key={id}>
-											<p className={` text-md text-white/70 `}>{card.title}</p>
-											<div className=" rounded-xl text-red">
-												{card.tasks.map((task) => {
-													if (!task) {
-														return (
-															<p className="text-orange-500 text-md font-bold">
-																Add your task
-															</p>
-														);
-													} else {
-														return (
-															<div className="bg-white text-black rounded-md mb-3">
-																<p className="task-title text-xl">
-																	{task.title}
-																</p>
-																<p className="task-description text-2xl font-bold">
-																	{task.description}
-																</p>
-                                                                
+
+			{/* Lists row */}
+			<div className="flex gap-4 overflow-x-auto items-start pb-6">
+				{[...mockBoard.lists]
+					.sort((a, b) => a.position - b.position)
+					.map((list) => {
+						const cards = list.cardIds
+							.map((id) => mockCards[id])
+							.filter(Boolean)
+							.sort((a, b) => a.position - b.position);
+
+						return (
+							<div
+								key={list.id}
+								className="flex-shrink-0 w-72 rounded-2xl bg-[#1a1d27]
+                       border border-white/5 flex flex-col overflow-hidden">
+								{/* List header */}
+								<div
+									className="flex items-center justify-between px-4 py-3
+                            border-b border-white/5">
+									<div className="flex items-center gap-2">
+										<span
+											className="w-2 h-2 rounded-full"
+											style={{ backgroundColor: list.color }}
+										/>
+										<h3 className="text-sm font-semibold text-slate-200 tracking-wide">
+											{list.title}
+										</h3>
+									</div>
+									<span
+										className="text-xs font-medium text-slate-500
+                               bg-white/5 rounded-full px-2 py-0.5">
+										{cards.length}
+									</span>
+								</div>
+
+								{/* Cards */}
+								<div className="flex flex-col gap-3 p-3 overflow-y-auto max-h-[70vh]">
+									{cards.map((card) => {
+										if (!card) return null;
+
+										const total = card.tasks.length;
+										const done = card.tasks.filter((t) => t.isCompleted).length;
+										const pct =
+											total > 0 ? Math.round((done / total) * 100) : 0;
+										const allDone = total > 0 && done === total;
+
+										return (
+											<div
+												key={card.id}
+												className="rounded-xl bg-[#22263a] border border-white/5
+                               hover:border-indigo-500/40 hover:shadow-lg
+                               hover:shadow-indigo-500/5
+                               transition-all duration-200 overflow-hidden">
+												{/* Card color bar */}
+												<div
+													className="h-0.5 w-full"
+													style={{
+														backgroundColor:
+															card.color === "Black" ? "#6366f1" : card.color,
+													}}
+												/>
+
+												<div className="p-3">
+													{/* Card position badge + title */}
+													<div className="flex items-start justify-between gap-2 mb-1">
+														<p className="text-sm font-semibold text-slate-100 leading-snug">
+															{card.title}
+														</p>
+														<span
+															className="flex-shrink-0 text-[10px] font-mono
+                                         text-slate-500 bg-white/5
+                                         rounded px-1.5 py-0.5 mt-0.5">
+															#{card.position + 1}
+														</span>
+													</div>
+
+													{/* Description */}
+													<p className="text-xs text-slate-400 leading-relaxed line-clamp-2 mb-3">
+														{card.description}
+													</p>
+
+													{/* Tasks */}
+													{total > 0 && (
+														<div className="flex flex-col gap-1.5">
+															{card.tasks.map((task) => (
+																<div
+																	key={task.id}
+																	className="flex items-start gap-2">
+																	{/* Checkbox indicator */}
+																	<div
+																		className={`mt-0.5 w-3.5 h-3.5 flex-shrink-0 rounded
+                                              flex items-center justify-center border
+                                              ${
+																								task.isCompleted
+																									? "bg-emerald-500 border-emerald-500"
+																									: "border-slate-600 bg-transparent"
+																							}`}>
+																		{task.isCompleted && (
+																			<svg
+																				className="w-2 h-2 text-white"
+																				viewBox="0 0 10 10"
+																				fill="none">
+																				<path
+																					d="M1.5 5l2.5 2.5 4.5-4.5"
+																					stroke="currentColor"
+																					strokeWidth="1.8"
+																					strokeLinecap="round"
+																					strokeLinejoin="round"
+																				/>
+																			</svg>
+																		)}
+																	</div>
+
+																	{/* Task text */}
+																	<div className="flex flex-col min-w-0">
+																		<span
+																			className={`text-xs font-medium leading-tight
+                                                  ${
+																										task.isCompleted
+																											? "line-through text-slate-500"
+																											: "text-slate-300"
+																									}`}>
+																			{task.title}
+																		</span>
+																		<span className="text-[11px] text-slate-500 leading-tight truncate">
+																			{task.description}
+																		</span>
+																	</div>
+																</div>
+															))}
+
+															{/* Progress bar */}
+															<div className="mt-2 pt-2 border-t border-white/5">
+																<div className="flex items-center justify-between mb-1">
+																	<span className="text-[10px] text-slate-500">
+																		{done}/{total} completed
+																	</span>
+																	{allDone ? (
+																		<span className="text-[10px] font-semibold text-emerald-400">
+																			All done ✓
+																		</span>
+																	) : (
+																		<span className="text-[10px] text-slate-500">
+																			{pct}%
+																		</span>
+																	)}
+																</div>
+																<div className="w-full h-1 bg-slate-700 rounded-full overflow-hidden">
+																	<div
+																		className={`h-full rounded-full transition-all duration-500
+                                            ${allDone ? "bg-emerald-500" : "bg-indigo-500"}`}
+																		style={{ width: `${pct}%` }}
+																	/>
+																</div>
 															</div>
-														);
-													}
-												})}
+														</div>
+													)}
+												</div>
 											</div>
-										</div>
-									);
-								}
-							})}
-						</div>
-					</div>
-				))}
+										);
+									})}
+								</div>
+							</div>
+						);
+					})}
 			</div>
 		</div>
 	);
