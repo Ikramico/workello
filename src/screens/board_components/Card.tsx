@@ -1,22 +1,14 @@
-import { useState } from "react";
-import type { Card, Task } from "../../types/board.types";
+import type { Card } from "../../types/board.types";
 import TaskItem from "./TaskItem";
 
 interface Props {
 	card: Card;
+	onCompleteTask: (cardId: string | number, taskId: string | number) => void;
 }
 
-export default function CardItem({ card }: Props) {
-	const [tasks, setTasks] = useState<Task[]>(card.tasks);
-
-	function completeTask(taskId: string | number) {
-		setTasks((prev) =>
-			prev.map((t) => (t.id === taskId ? { ...t, isCompleted: true } : t)),
-		);
-	}
-
-	const total = tasks.length;
-	const done = tasks.filter((t) => t.isCompleted).length;
+export default function CardItem({ card, onCompleteTask }: Props) {
+	const total = card.tasks.length;
+	const done = card.tasks.filter((t) => t.isCompleted).length;
 	const pct = total > 0 ? Math.round((done / total) * 100) : 0;
 	const allDone = total > 0 && done === total;
 
@@ -53,15 +45,15 @@ export default function CardItem({ card }: Props) {
 				{/* Tasks */}
 				{total > 0 && (
 					<div className="flex flex-col gap-1.5">
-						{tasks.map((task) => (
+						{card.tasks.map((task) => (
 							<TaskItem
 								key={task.id}
 								task={task}
-								onComplete={() => completeTask(task.id)}
+								onComplete={() => onCompleteTask(card.id, task.id)}
 							/>
 						))}
 
-						{/* Progress bar — NOW works because tasks state lives here */}
+						{/* Progress bar — works because card.tasks comes from Board state */}
 						<div className="mt-2 pt-2 border-t border-white/5">
 							<div className="flex items-center justify-between mb-1">
 								<span className="text-[10px] text-slate-500">

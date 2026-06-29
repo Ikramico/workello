@@ -18,8 +18,8 @@ export default function TaskItem({ task, onComplete }: Props) {
 											: "hover:bg-white/5 cursor-pointer"
 									}`}>
 			<div
-				className={`mt-0.5 w-3.5 h-3.5 shrink-0 rounded
-                       flex items-center justify-center border transition-colors duration-200
+				className={`mt-0.5 w-3.5 h-3.5 flex-shrink-0 rounded
+                       flex items-center justify-center border transition-colors
                        ${
 													task.isCompleted
 														? "bg-emerald-500 border-emerald-500"
