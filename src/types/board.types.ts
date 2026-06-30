@@ -3,7 +3,8 @@ export interface Task{
     title: string,
     description: string,
     image?: string,
-    isCompleted: boolean
+    isCompleted: boolean,
+    createdAt: string
 }
 
 export interface Card{

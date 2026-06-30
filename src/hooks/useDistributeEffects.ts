@@ -1,12 +1,27 @@
 import type { Card, List as ListType } from "../types/board.types";
 import { useState, useEffect } from "react";
 
+// Tune this — anything incomplete and older than this gets bumped to Backlog
+const STALE_THRESHOLD_MS = 3 * 24 * 60 * 60 * 1000;
+
+type TaskItem = Card["tasks"][number];
+
+export function isTaskOverdue(task: TaskItem): boolean {
+	if (task.isCompleted || !task.createdAt) return false;
+	return Date.now() - new Date(task.createdAt).getTime() > STALE_THRESHOLD_MS;
+}
+
 export function getTargetListId(tasks: Card["tasks"]): string {
 	const total = tasks.length;
 	const completed = tasks.filter((t) => t.isCompleted).length;
 
+	// Finished work always lands in Done, no matter how long it took
+	if (total > 0 && completed === total) return "list-3";
+
+	// Stuck too long on an incomplete task -> Backlog
+	if (tasks.some(isTaskOverdue)) return "list-4";
+
 	if (total === 0 || completed === 0) return "list-1";
-	if (completed === total) return "list-3";
 	return "list-2";
 }
 
@@ -57,12 +72,9 @@ export default function useDistributeEffects(
 	useEffect(() => {
 		setLists((prevLists: ListType[]) => {
 			const next = redistributeCards(prevLists, cards);
-
 			return listsAreEqual(prevLists, next) ? prevLists : next;
 		});
 	}, [cards]);
 
 	return lists;
 }
-
-	
