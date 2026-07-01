@@ -1,5 +1,5 @@
 import type { Card, List as ListType } from "../types/board.types";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 // Tune this — anything incomplete and older than this gets bumped to Backlog
 const STALE_THRESHOLD_MS = 3 * 24 * 60 * 60 * 1000;
@@ -69,12 +69,39 @@ export default function useDistributeEffects(
 	const [lists, setLists] = useState<ListType[]>(() =>
 		[...initialLists].sort((a, b) => a.position - b.position),
 	);
+
+	// Skip redistribution if this exact cards reference was already processed
+	const prevCardsRef = useRef<Record<string, Card> | null>(null);
+
 	useEffect(() => {
+		if (prevCardsRef.current === cards) return;
+		prevCardsRef.current = cards;
+
 		setLists((prevLists: ListType[]) => {
 			const next = redistributeCards(prevLists, cards);
 			return listsAreEqual(prevLists, next) ? prevLists : next;
 		});
 	}, [cards]);
 
-	return lists;
+	function moveCard(cardId: string, targetListId: string) {
+		setLists((prevLists) => {
+			const next = prevLists.map((l) => ({ ...l, cardIds: [...l.cardIds] }));
+
+			const sourceList = next.find((l) => l.cardIds.includes(cardId));
+			const targetList = next.find((l) => l.id === targetListId);
+
+			if (!sourceList || !targetList || sourceList.id === targetListId) {
+				return prevLists;
+			}
+
+			sourceList.cardIds = sourceList.cardIds.filter((id) => id !== cardId);
+			if (!targetList.cardIds.includes(cardId)) {
+				targetList.cardIds.push(cardId);
+			}
+
+			return next;
+		});
+	}
+
+	return [lists, moveCard] as const;
 }

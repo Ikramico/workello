@@ -1,3 +1,4 @@
+import { useDroppable } from "@dnd-kit/react";
 import type { Card, List } from "../../types/board.types";
 import CardItem from "./Card";
 
@@ -18,10 +19,15 @@ export default function List({
 	openCardId,
 	onToggleCard,
 }: Props) {
+
+	const {ref, isDropTarget} = useDroppable({id: list.id});
 	return (
 		<div
-			className="shrink-0 w-72 max-h-[80vh] rounded-2xl bg-[#1a1d27]
-                    border border-white/5 flex flex-col overflow-hidden">
+			ref={ref}
+			className={`shrink-0 w-72 max-h-[80vh] rounded-2xl bg-[#1a1d27]
+	border flex flex-col overflow-hidden
+	${isDropTarget ? "border-indigo-500/50" : "border-white/5"}
+	`}>
 			{/* Header */}
 			<div className="flex items-center justify-between px-4 py-3 border-b border-white/5 shrink-0">
 				<div className="flex items-center gap-2">
@@ -47,6 +53,7 @@ export default function List({
 			</div>
 
 			{/* Cards — scrollable list */}
+
 			<div className="flex flex-col gap-3 p-3 overflow-y-auto flex-1 min-h-0">
 				{cards.map((card) => (
 					<CardItem

@@ -1,3 +1,4 @@
+import { useDraggable } from "@dnd-kit/react";
 import type { Card } from "../../types/board.types";
 import TaskItem from "./TaskItem";
 
@@ -19,9 +20,13 @@ export default function CardItem({
 	const pct = total > 0 ? Math.round((done / total) * 100) : 0;
 	const allDone = total > 0 && done === total;
 
+	const { ref, handleRef, isDragging } = useDraggable({ id: card.id });
+
 	return (
 		<div
+			ref={ref}
 			className={`rounded-xl bg-[#22263a] border transition-all duration-200 overflow-hidden
+                  ${isDragging ? "opacity-50 " : ""}
                   ${isOpen ? "border-indigo-500/50" : "border-white/5 hover:border-indigo-500/40"}`}>
 			{/* Color bar */}
 			<div
@@ -37,7 +42,21 @@ export default function CardItem({
 				className="w-full text-left p-3 cursor-pointer">
 				{/* Title + position */}
 				<div className="flex items-start justify-between gap-2 mb-1">
-					<p className="text-sm font-semibold text-slate-100 leading-snug">
+					{/* Drag handle */}
+					<span
+						ref={handleRef}
+						onClick={(e) => e.stopPropagation()}
+						className="shrink-0 mt-0.5 cursor-grab active:cursor-grabbing touch-none text-slate-600 hover:text-slate-400">
+						<svg width="10" height="14" viewBox="0 0 10 14" fill="currentColor">
+							<circle cx="2" cy="2" r="1.4" />
+							<circle cx="8" cy="2" r="1.4" />
+							<circle cx="2" cy="7" r="1.4" />
+							<circle cx="8" cy="7" r="1.4" />
+							<circle cx="2" cy="12" r="1.4" />
+							<circle cx="8" cy="12" r="1.4" />
+						</svg>
+					</span>
+					<p className="text-sm font-semibold text-slate-100 leading-snug flex-1">
 						{card.title}
 					</p>
 					<div className="flex items-center gap-1.5 mt-0.5 shrink-0">
