@@ -2,13 +2,17 @@ import type { Card } from "../../types/board.types";
 
 interface Props {
 	card: Card;
-	reason: "done" | "overdue";
+	reason: "done" | "overdue" | "backward" | "not-started";
 	onDismiss: () => void;
 }
 
 const REASON_MESSAGES: Record<Props["reason"], string> = {
 	done: "This card is finished and lives in Done. Uncheck a task first if you need to move it elsewhere.",
 	overdue:
+		"This card has a stale, unfinished task and belongs in Backlog until that task is resolved.",
+	backward:
+		"This card has some unfinished tasks and belongs in In Progress and those can't be undone.",
+	"not-started":
 		"This card has a stale, unfinished task and belongs in Backlog until that task is resolved.",
 };
 

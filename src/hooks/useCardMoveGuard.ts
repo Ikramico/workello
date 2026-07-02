@@ -1,6 +1,5 @@
 import { useState } from "react";
 import type { Card, List as ListType } from "../types/board.types";
-import { isTaskOverdue } from "./useDistributeEffects";
 
 const TODO_LIST_ID = "list-1";
 const IN_PROGRESS_LIST_ID = "list-2";
@@ -14,7 +13,7 @@ type PendingMove = {
 
 type BlockedMove = {
 	cardId: string;
-	reason: "done" | "overdue";
+	reason: "done" | "overdue" | "backward" | "not-started";
 } | null;
 
 interface DragOperationEvent {
@@ -45,9 +44,11 @@ export default function useCardMoveGuard(
 		return total > 0 && done === total;
 	}
 
-	function hasOverdueTask(cardId: string) {
+	function isCardAllPending(cardId: string) {
 		const card = cards[cardId];
-		return (card?.tasks ?? []).some(isTaskOverdue);
+		const total = card?.tasks.length ?? 0;
+		const done = card?.tasks.filter((t) => t.isCompleted).length ?? 0;
+		return total > 0 && done === 0;
 	}
 
 	function attemptMove(
@@ -60,11 +61,17 @@ export default function useCardMoveGuard(
 			return;
 		}
 
+		if (sourceListId === IN_PROGRESS_LIST_ID && targetListId === TODO_LIST_ID) {
+			setBlockedMove({ cardId, reason: "backward" });
+			return;
+		}
+
 		if (
-			hasOverdueTask(cardId) &&
-			(targetListId === TODO_LIST_ID && sourceListId === IN_PROGRESS_LIST_ID)
+			sourceListId === BACKLOG_LIST_ID &&
+			targetListId === IN_PROGRESS_LIST_ID &&
+			isCardAllPending(cardId)
 		) {
-			setBlockedMove({ cardId, reason: "overdue" });
+			setBlockedMove({ cardId, reason: "not-started" });
 			return;
 		}
 
