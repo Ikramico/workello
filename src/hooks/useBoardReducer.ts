@@ -1,6 +1,8 @@
-import { useReducer, useCallback } from "react";
+import { useReducer, useCallback, useEffect } from "react";
 import type { Card, List as ListType } from "../types/board.types";
 import { redistributeCards, listsAreEqual } from "./useDistributeEffects";
+
+const STORAGE_KEY = "board:v1";
 
 const TODO_LIST_ID = "list-1";
 const IN_PROGRESS_LIST_ID = "list-2";
@@ -22,6 +24,7 @@ interface BoardState {
 	lists: ListType[];
 	pendingCompletion: PendingMove;
 	pendingConfirm: PendingMove;
+	pendingStart: PendingMove;
 	blockedMove: BlockedMove;
 }
 
@@ -32,6 +35,8 @@ type BoardAction =
 	| { type: "CANCEL_COMPLETION" }
 	| { type: "CONFIRM_BACKLOG_MOVE" }
 	| { type: "CANCEL_BACKLOG_MOVE" }
+	| { type: "CONFIRM_START_MOVE" }
+	| { type: "CANCEL_START_MOVE" }
 	| { type: "DISMISS_BLOCKED_MOVE" };
 
 // ---- pure helpers (ported from useCardMoveGuard.ts, now data-in/data-out) ----
@@ -83,6 +88,7 @@ type MoveOutcome =
 	| { kind: "move" }
 	| { kind: "confirm-backlog" }
 	| { kind: "confirm-completion" }
+	| { kind: "confirm-start" }
 	| { kind: "blocked"; reason: NonNullable<BlockedMove>["reason"] };
 
 function decideMoveOutcome(
@@ -99,12 +105,8 @@ function decideMoveOutcome(
 		return { kind: "blocked", reason: "backward" };
 	}
 
-	if (
-		sourceListId === BACKLOG_LIST_ID &&
-		targetListId === IN_PROGRESS_LIST_ID &&
-		isCardAllPending(cards, cardId)
-	) {
-		return { kind: "blocked", reason: "not-started" };
+	if (targetListId === IN_PROGRESS_LIST_ID && isCardAllPending(cards, cardId)) {
+		return { kind: "confirm-start" };
 	}
 
 	if (sourceListId === TODO_LIST_ID && targetListId === BACKLOG_LIST_ID) {
@@ -177,6 +179,11 @@ function boardReducer(state: BoardState, action: BoardAction): BoardState {
 						...state,
 						pendingCompletion: { cardId, targetListId },
 					};
+				case "confirm-start":
+					return {
+						...state,
+						pendingStart: { cardId, targetListId },
+					};
 				case "move":
 					return {
 						...state,
@@ -213,6 +220,23 @@ function boardReducer(state: BoardState, action: BoardAction): BoardState {
 		case "CANCEL_BACKLOG_MOVE":
 			return { ...state, pendingConfirm: null };
 
+		case "CONFIRM_START_MOVE": {
+			if (!state.pendingStart) return state;
+			const { cardId, targetListId } = state.pendingStart;
+			// Safety net: only actually move once at least one task has
+			// been checked off. If the person hits confirm before that,
+			// keep the modal open rather than letting the card through.
+			if (isCardAllPending(state.cards, cardId)) return state;
+			return {
+				...state,
+				lists: moveCardInLists(state.lists, cardId, targetListId),
+				pendingStart: null,
+			};
+		}
+
+		case "CANCEL_START_MOVE":
+			return { ...state, pendingStart: null };
+
 		case "DISMISS_BLOCKED_MOVE":
 			return { ...state, blockedMove: null };
 
@@ -232,13 +256,64 @@ export default function useBoardReducer(
 	initialCards: Record<string | number, Card>,
 	initialLists: ListType[],
 ) {
-	const [state, dispatch] = useReducer(boardReducer, {
-		cards: initialCards,
-		lists: [...initialLists].sort((a, b) => a.position - b.position),
-		pendingCompletion: null,
-		pendingConfirm: null,
-		blockedMove: null,
+	const [state, dispatch] = useReducer(boardReducer, undefined, () => {
+		const emptyTransient = {
+			pendingCompletion: null,
+			pendingConfirm: null,
+			pendingStart: null,
+			blockedMove: null,
+		} as const;
+
+		if (typeof window !== "undefined") {
+			try {
+				const stored = window.localStorage.getItem(STORAGE_KEY);
+				if (stored) {
+					const parsed = JSON.parse(stored) as {
+						cards: BoardState["cards"];
+						lists: ListType[];
+					};
+					// Trust the saved arrangement as-is — don't re-run
+					// auto-distribution over a board the user already moved
+					// cards around in.
+					return {
+						cards: parsed.cards,
+						lists: parsed.lists,
+						...emptyTransient,
+					};
+				}
+			} catch {
+				// Corrupt or inaccessible storage — fall through to fresh seed.
+			}
+		}
+
+		const sortedLists = [...initialLists].sort(
+			(a, b) => a.position - b.position,
+		);
+		// Run the same auto-distribution the old mount-effect ran, so first
+		// render already reflects task-completion state instead of the raw
+		// static `cardIds` in mockBoard.lists.
+		const distributed = redistributeCards(sortedLists, initialCards);
+
+		return {
+			cards: initialCards,
+			lists: distributed,
+			...emptyTransient,
+		};
 	});
+
+	// Persist whenever the actual board data changes — not the transient
+	// modal/pending state, which shouldn't survive a reload anyway.
+	useEffect(() => {
+		if (typeof window === "undefined") return;
+		try {
+			window.localStorage.setItem(
+				STORAGE_KEY,
+				JSON.stringify({ cards: state.cards, lists: state.lists }),
+			);
+		} catch {
+			// Storage full or unavailable — silently skip persistence.
+		}
+	}, [state.cards, state.lists]);
 
 	const completeTask = useCallback(
 		(cardId: string | number, taskId: string | number) =>
@@ -272,6 +347,14 @@ export default function useBoardReducer(
 		() => dispatch({ type: "CANCEL_BACKLOG_MOVE" }),
 		[],
 	);
+	const confirmStartMove = useCallback(
+		() => dispatch({ type: "CONFIRM_START_MOVE" }),
+		[],
+	);
+	const cancelStartMove = useCallback(
+		() => dispatch({ type: "CANCEL_START_MOVE" }),
+		[],
+	);
 	const dismissBlockedMove = useCallback(
 		() => dispatch({ type: "DISMISS_BLOCKED_MOVE" }),
 		[],
@@ -284,11 +367,14 @@ export default function useBoardReducer(
 		handleDragEnd,
 		pendingCompletion: state.pendingCompletion,
 		pendingConfirm: state.pendingConfirm,
+		pendingStart: state.pendingStart,
 		blockedMove: state.blockedMove,
 		confirmCompletion,
 		cancelCompletion,
 		confirmBacklogMove,
 		cancelBacklogMove,
+		confirmStartMove,
+		cancelStartMove,
 		dismissBlockedMove,
 	};
 }

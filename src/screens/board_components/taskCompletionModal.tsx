@@ -5,6 +5,13 @@ interface Props {
 	onCompleteTask: (cardId: string | number, taskId: string | number) => void;
 	onCancel: () => void;
 	onConfirm: () => void;
+	/** Where confirming will move the card, e.g. "Done" or "In Progress". */
+	targetListLabel?: string;
+	/**
+	 * true  -> every task must be checked off (Done flow)
+	 * false -> at least one task must be checked off (Start flow)
+	 */
+	requireAllTasks?: boolean;
 }
 
 export default function TaskCompletionModal({
@@ -12,10 +19,13 @@ export default function TaskCompletionModal({
 	onCompleteTask,
 	onCancel,
 	onConfirm,
+	targetListLabel = "Done",
+	requireAllTasks = true,
 }: Props) {
 	const total = card.tasks.length;
 	const done = card.tasks.filter((t) => t.isCompleted).length;
 	const allDone = total === 0 || done === total;
+	const isReady = requireAllTasks ? allDone : done > 0;
 
 	return (
 		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
@@ -24,7 +34,9 @@ export default function TaskCompletionModal({
 					Finish "{card.title}" first
 				</h3>
 				<p className="text-xs text-slate-400 mb-4">
-					All tasks need to be checked off before this card can move to Done.
+					{requireAllTasks
+						? `All tasks need to be checked off before this card can move to ${targetListLabel}.`
+						: `At least one task needs to be checked off before this card can move to ${targetListLabel}.`}
 				</p>
 
 				{total > 0 && (
@@ -63,14 +75,14 @@ export default function TaskCompletionModal({
 					<button
 						type="button"
 						onClick={onConfirm}
-						disabled={!allDone}
+						disabled={!isReady}
 						className={`flex-1 text-xs font-medium rounded-lg px-3 py-2
               ${
-								allDone
+								isReady
 									? "bg-emerald-500 text-white hover:bg-emerald-400"
 									: "bg-slate-700 text-slate-500 cursor-not-allowed"
 							}`}>
-						Move to Done
+						Move to {targetListLabel}
 					</button>
 				</div>
 			</div>
