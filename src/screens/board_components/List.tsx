@@ -6,21 +6,10 @@ interface Props {
 	list: List;
 	cards: Card[];
 	totalDone: number;
-	onCompleteTask: (cardId: string | number, taskId: string | number) => void;
-	openCardId: string | number | null;
-	onToggleCard: (cardId: string | number) => void;
 }
 
-export default function List({
-	list,
-	cards,
-	totalDone,
-	onCompleteTask,
-	openCardId,
-	onToggleCard,
-}: Props) {
-
-	const {ref, isDropTarget} = useDroppable({id: list.id});
+export default function List({ list, cards, totalDone }: Props) {
+	const { ref, isDropTarget } = useDroppable({ id: list.id });
 	return (
 		<div
 			ref={ref}
@@ -56,13 +45,7 @@ export default function List({
 
 			<div className="flex flex-col gap-3 p-3 overflow-y-auto flex-1 min-h-0">
 				{cards.map((card) => (
-					<CardItem
-						key={card.id}
-						card={card}
-						onCompleteTask={onCompleteTask}
-						isOpen={openCardId === card.id}
-						onToggle={() => onToggleCard(card.id)}
-					/>
+					<CardItem key={card.id} card={card} />
 				))}
 			</div>
 		</div>

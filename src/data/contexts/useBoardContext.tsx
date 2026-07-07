@@ -29,3 +29,25 @@ export function useBoardActions() {
 }
 
 
+const BoardUIContext = createContext<BoardUIValue | null>(null);
+
+export function BoardUIProvider({
+	value,
+	children,
+}: {
+	value: BoardUIValue;
+	children: React.ReactNode;
+}) {
+	return (
+		<BoardUIContext.Provider value={value}>{children}</BoardUIContext.Provider>
+	);
+}
+
+export function useBoardUI() {
+	const ctx = useContext(BoardUIContext);
+	if (!ctx) {
+		throw new Error("useBoardUI must be used within BoardUIProvider");
+	}
+	return ctx;
+}
+
