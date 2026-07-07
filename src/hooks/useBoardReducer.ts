@@ -1,5 +1,12 @@
 import { useReducer, useCallback, useEffect } from "react";
-import type { Card, List as ListType } from "../types/board.types";
+import type {
+	Card,
+	List as ListType,
+	BoardState,
+	BoardAction,
+	MoveOutcome,
+	DragOperationEvent,
+} from "../types/board.types";
 import { redistributeCards, listsAreEqual } from "./useDistributeEffects";
 
 const STORAGE_KEY = "board:v1";
@@ -8,36 +15,6 @@ const TODO_LIST_ID = "list-1";
 const IN_PROGRESS_LIST_ID = "list-2";
 const DONE_LIST_ID = "list-3";
 const BACKLOG_LIST_ID = "list-4";
-
-type PendingMove = {
-	cardId: string;
-	targetListId: string;
-} | null;
-
-type BlockedMove = {
-	cardId: string;
-	reason: "done" | "overdue" | "backward" | "not-started";
-} | null;
-
-interface BoardState {
-	cards: Record<string | number, Card>;
-	lists: ListType[];
-	pendingCompletion: PendingMove;
-	pendingConfirm: PendingMove;
-	pendingStart: PendingMove;
-	blockedMove: BlockedMove;
-}
-
-type BoardAction =
-	| { type: "COMPLETE_TASK"; cardId: string | number; taskId: string | number }
-	| { type: "REQUEST_MOVE"; cardId: string; targetListId: string }
-	| { type: "CONFIRM_COMPLETION" }
-	| { type: "CANCEL_COMPLETION" }
-	| { type: "CONFIRM_BACKLOG_MOVE" }
-	| { type: "CANCEL_BACKLOG_MOVE" }
-	| { type: "CONFIRM_START_MOVE" }
-	| { type: "CANCEL_START_MOVE" }
-	| { type: "DISMISS_BLOCKED_MOVE" };
 
 // ---- pure helpers (ported from useCardMoveGuard.ts, now data-in/data-out) ----
 
@@ -80,16 +57,6 @@ function moveCardInLists(
 
 	return next;
 }
-
-// Decides the outcome of a requested move: direct move, one of the two
-// confirmation modals, a block, or nothing. Pure — no setState calls,
-// just returns what the reducer should do.
-type MoveOutcome =
-	| { kind: "move" }
-	| { kind: "confirm-backlog" }
-	| { kind: "confirm-completion" }
-	| { kind: "confirm-start" }
-	| { kind: "blocked"; reason: NonNullable<BlockedMove>["reason"] };
 
 function decideMoveOutcome(
 	cards: BoardState["cards"],
@@ -243,13 +210,6 @@ function boardReducer(state: BoardState, action: BoardAction): BoardState {
 		default:
 			return state;
 	}
-}
-
-interface DragOperationEvent {
-	operation: {
-		source: { id: string | number } | null;
-		target: { id: string | number } | null;
-	};
 }
 
 export default function useBoardReducer(

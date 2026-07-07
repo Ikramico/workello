@@ -1,20 +1,20 @@
 import { useDraggable } from "@dnd-kit/react";
 import type { Card } from "../../types/board.types";
 import TaskItem from "./TaskItem";
+import {
+	useBoardActions,
+	useBoardUI,
+} from "../../data/contexts/useBoardContext";
 
 interface Props {
 	card: Card;
-	onCompleteTask: (cardId: string | number, taskId: string | number) => void;
-	isOpen: boolean;
-	onToggle: () => void;
 }
 
-export default function CardItem({
-	card,
-	onCompleteTask,
-	isOpen,
-	onToggle,
-}: Props) {
+export default function CardItem({ card }: Props) {
+	const { completeTask } = useBoardActions();
+	const { openCardId, toggleCard } = useBoardUI();
+	const isOpen = openCardId === card.id;
+
 	const total = card.tasks.length;
 	const done = card.tasks.filter((t) => t.isCompleted).length;
 	const pct = total > 0 ? Math.round((done / total) * 100) : 0;
@@ -38,7 +38,7 @@ export default function CardItem({
 
 			<button
 				type="button"
-				onClick={onToggle}
+				onClick={() => toggleCard(card.id)}
 				className="w-full text-left p-3 cursor-pointer">
 				{/* Title + position */}
 				<div className="flex items-start justify-between gap-2 mb-1">
@@ -96,7 +96,7 @@ export default function CardItem({
 							<TaskItem
 								key={task.id}
 								task={task}
-								onComplete={() => onCompleteTask(card.id, task.id)}
+								onComplete={() => completeTask(card.id, task.id)}
 							/>
 						))}
 					</div>
