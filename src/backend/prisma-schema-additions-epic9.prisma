@@ -1,0 +1,81 @@
+// ── Epic 9 Prisma schema additions ──────────────────────────────────────────
+// Apply into your real prisma/schema.prisma, then run:
+//   npx prisma migrate dev --name epic9_audit_webhook_secrets
+//
+// All changes are additive. No existing columns are altered or removed.
+
+// ── New enum: AuditAction ────────────────────────────────────────────────────
+// Covers every significant action that should appear in the audit log.
+// Add new values here as features grow — Prisma handles additive enum changes
+// with ALTER TYPE in Postgres.
+//
+// enum AuditAction {
+//   // Auth
+//   user_registered
+//   user_login
+//   user_password_reset
+//
+//   // Workspace membership
+//   member_invited
+//   member_joined          // invite accepted
+//   member_role_changed
+//   member_removed
+//
+//   // Board
+//   board_created
+//   board_updated
+//
+//   // Card
+//   card_created
+//   card_moved
+//   card_archived
+//
+//   // Integrations
+//   integration_connected
+//   integration_disconnected
+//   repo_linked
+//   repo_unlinked
+//
+//   // Webhooks
+//   webhook_secret_rotated
+// }
+
+// ── New model: AuditLog ──────────────────────────────────────────────────────
+// One row per action. Append-only — no UPDATE or DELETE ever touches this table.
+// `actorId` is nullable so system-generated events (e.g. a digest run) can be
+// logged without a user.
+//
+// model AuditLog {
+//   id          String      @id @default(uuid())
+//   workspaceId String
+//   workspace   Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+//   actorId     String?
+//   actor       User?       @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+//   action      AuditAction
+//   targetType  String?     // e.g. "card", "member", "repo" — human-readable context
+//   targetId    String?     // id of the affected entity
+//   targetLabel String?     // human-readable name at the time of the action
+//   metadata    Json?       // any extra structured data (old value, new value, etc.)
+//   createdAt   DateTime    @default(now())
+//
+//   @@index([workspaceId, createdAt(sort: Desc)])
+//   @@index([actorId])
+//   @@map("audit_logs")
+// }
+
+// ── Change to model LinkedRepo ───────────────────────────────────────────────
+// Add one nullable field for per-repo webhook secret (HMAC key):
+//
+//   webhookSecret  String?   // encrypted at rest via EncryptionService
+//
+// When present, WebhooksService uses this instead of the global
+// GITHUB_WEBHOOK_SECRET / GITLAB_WEBHOOK_SECRET env var.
+// Null = fall back to the env var (backwards-compatible).
+
+// ── Add to model Workspace ───────────────────────────────────────────────────
+// New backref:
+//   auditLogs  AuditLog[]
+
+// ── Add to model User ────────────────────────────────────────────────────────
+// New backref:
+//   auditLogs  AuditLog[]  @relation("AuditActor")
